@@ -1,0 +1,13 @@
+Deploy,Image,Tag
+1,pt-max-station-inventory-api,P01.02.0240
+1,pt-max-station-sale-api,P01.02.0240
+1,pt-max-station-salelist-api,P01.02.0240
+1,pt-max-station-masterdata-api,P01.02.0240
+1,pt-max-station-transferdata-api,P01.02.0240
+1,pt-max-station-finance-api,P01.02.0240
+1,pt-max-station-dailyoperation-api,P01.02.0240
+1,pt-max-station-postday-api,P01.02.0240
+1,pt-max-station-price-api,P01.02.0240
+1,pt-max-station-report-api,P01.02.0240
+1,pt-max-station-common-api,P01.02.0240
+1,pt-max-station-vat-export-worker,P01.02.0240

@@ -1,0 +1,122 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: $(image)
+  namespace: $(namespace)
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: $(image)
+  template:
+    metadata:
+      labels:
+        app: $(image)
+    spec:
+      containers:
+        - name: $(image)
+          image: $(repository)/$(image):$(tag)
+          #resources:
+          #  requests:
+          #    memory: "64Mi"
+          #    cpu: "250m"
+          #  limits:
+          #    memory: "500Mi"
+          #    cpu: "500m"            
+          volumeMounts:
+          - name: azurefileshare
+            mountPath: /app/AppLogs
+          - name: keyvaultshare
+            mountPath: /app/Configs
+            readOnly: false
+          env:
+          - name: ConnectionFile
+            value: /app/Configs/uat-maxstationconnection-db
+          - name: APP_VERSION
+            value: $(image):$(tag)
+          - name: ROOT_URL
+            valueFrom:
+              secretKeyRef:
+                name: web-api-credentials
+                key: $(secret_base_url) 
+          - name: TZ
+            value: "Asia/Bangkok"                 
+          imagePullPolicy: Always            
+      restartPolicy: Always
+      imagePullSecrets:      
+        - name: pt-max-station-registry-secret
+      volumes:
+        - name: azurefileshare
+          azureFile:
+            secretName: storage-credentials
+            shareName: $(storage_path)
+            readOnly: false
+        - name: keyvaultshare
+          flexVolume:
+            driver: "azure/kv"
+            options:
+              usevmmanagedidentity: "true"       
+              vmmanagedidentityclientid: $(clientid)    
+              keyvaultname: $(keyvaultname)
+              keyvaultobjectnames: $(keyvaultobjectnames)
+              keyvaultobjecttypes: secret               
+              tenantid: $(tenantid)           
+---     
+kind: Service
+apiVersion: v1
+metadata:
+ name: $(image)-service
+ namespace: $(namespace)
+spec:
+ type: ClusterIP
+ #LoadBalancer
+ #NodePort
+ ports:
+   - port: 80
+     targetPort: 80
+     protocol: TCP
+ selector:
+   app: $(image)
+--- 
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+ name: $(image)-ha
+ namespace: $(namespace)  
+spec:
+ scaleTargetRef:
+   apiVersion: apps/v1
+   kind: Deployment
+   name: $(image)
+ minReplicas: 1
+ maxReplicas: 10
+ metrics:
+ - type: Resource
+   resource:
+     name: cpu
+     target:
+       type: Utilization
+       averageUtilization: 90
+ - type: Resource
+   resource:
+     name: memory
+     target:
+       type: AverageValue
+       averageValue: 300Mi
+ - type: Object
+   object:
+     metric:
+       name: requests-per-second
+     describedObject:
+       apiVersion: networking.k8s.io/v1
+       kind: Ingress
+       name: maxstation-ingress-api-uat
+     target:
+       type: Value
+       value: 10k

@@ -1,0 +1,51 @@
+ARG VERSION=6.0-alpine
+
+FROM mcr.microsoft.com/dotnet/sdk:$VERSION AS build-env
+WORKDIR /src
+
+COPY ["Vatno.Worker/","Vatno.Worker/"]
+COPY ["MaxStation.Utilities/","MaxStation.Utilities/"]
+
+COPY ["scripts/harden.sh", "./harden.sh"]
+COPY ["scripts/post-install.sh", "./post-install.sh"]
+
+RUN sed -i -e "s|^MinProtocol = .*|MinProtocol = TLSv1.0|g" "/etc/ssl/openssl.cnf"
+
+RUN dotnet publish "Vatno.Worker/Vatno.Worker.csproj" \
+	-c Release \
+	-o /app/publish \
+	-r alpine-x64 \
+	--self-contained true \
+	/p:PublishReadyToRun=true \
+	/p:PublishReadyToRunShowWarnings=true \
+	/p:PublishSingleFile=true \
+	/p:TargetLatestRuntimePatch=true
+
+RUN chmod u+x,o+x /app/publish/Vatno.Worker
+
+FROM mcr.microsoft.com/dotnet/aspnet:$VERSION AS final
+
+ENV APP_DIR=app \
+	DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
+	DOTNET_RUNNING_IN_CONTAINER=true \
+	ASPNETCORE_URLS=http://+:8080 \
+	TZ=Asia/Bangkok
+
+RUN apk add --no-cache icu-libs tzdata --upgrade bash
+
+WORKDIR $APP_DIR
+
+COPY --from=build-env /src/harden.sh .
+RUN chmod +x harden.sh
+CMD	"/harden.sh"
+RUN	rm harden.sh
+
+COPY --from=build-env /$APP_DIR/publish .
+COPY --from=build-env /src/post-install.sh .
+
+RUN chmod +x post-install.sh
+CMD	"/post-install.sh Vatno.Worker"
+RUN	rm post-install.sh
+
+EXPOSE 8080
+ENTRYPOINT ["./Vatno.Worker"]

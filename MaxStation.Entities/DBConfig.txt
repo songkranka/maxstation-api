@@ -1,0 +1,19 @@
+﻿Install-Package Microsoft.EntityFrameworkCore.Tools -Version 3.1.10
+Install-Package Microsoft.EntityFrameworkCore.SqlServer
+Install-Package Microsoft.EntityFrameworkCore.Design
+
+
+
+/** Scaffold  **/
+Scaffold-DbContext "Server=serversql-microservice.database.windows.net,1433;Database=pt-max-station-db-dev;Trusted_Connection=False;User ID=utaindbadmin@serversql-microservice;Password=Ptg2020@;" Microsoft.EntityFrameworkCore.SqlServer -Context PTMaxstationContext -OutputDir Models    -force
+
+Scaffold-DbContext "Server=dell-nb;Database=MaxStation;Trusted_Connection=False;User ID=sa;Password=sa;" Microsoft.EntityFrameworkCore.SqlServer -Context PTMaxstationContext -OutputDir Models -table INV_REQUEST_HD,INV_REQUEST_DT,INV_TRANOUT_HD,INV_TRANOUT_DT,INV_TRANIN_HD,INV_TRANIN_DT,MAS_CONTROL,MAS_COMPANY,MAS_EMPLOYEE,MAS_BRANCH -force
+
+/** local database  **/
+Scaffold-DbContext "Server=dell-nb;Database=MaxStation;Trusted_Connection=False;User ID=sa;Password=sa;" Microsoft.EntityFrameworkCore.SqlServer -Context PTMaxstationContext -OutputDir Models 
+-table INV_REQUEST_HD,INV_REQUEST_DT,INV_TRANOUT_HD,INV_TRANOUT_DT,INV_TRANIN_HD,INV_TRANIN_DT,MAS_CONTROL
+,MAS_COMPANY,MAS_EMPLOYEE,MAS_BRANCH
+-force
+
+// -force
+// -table <tablename>
